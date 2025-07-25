@@ -1,3 +1,5 @@
+import random
+
 const
   levelWidth = 40
   levelHeight = 28
@@ -13,15 +15,16 @@ type
     ikPellet
     ikBigPellet
   MoveNode* = object
-    level: ptr Level
+    level: ref Level
     pos*: (int, int)
     open*: bool
     item*: ItemKind
   Level* = object
     tiles*: array[levelHeight, array[levelWidth, TileKind]]
-    moveGrid*: array[gridHeight, array[gridWidth, MoveNode]]
+    moveGrid*: array[gridHeight, array[gridWidth, ref MoveNode]]
+    openMoveNodes: seq[ref MoveNode]
 
-func relativeNode*(node: ptr MoveNode; x, y: int): ptr MoveNode =
+func relativeNode*(node: ref MoveNode; x, y: int): ref MoveNode =
   var
     xx = node.pos[0] + x
     yy = node.pos[1] + y
@@ -29,17 +32,20 @@ func relativeNode*(node: ptr MoveNode; x, y: int): ptr MoveNode =
     xx = gridWidth - 1
   if yy < 0:
     yy = gridHeight - 1
-  node.level.moveGrid[yy mod gridHeight][xx mod gridWidth].addr
+  node.level.moveGrid[yy mod gridHeight][xx mod gridWidth]
 
-func openNeighbours*(node: ptr MoveNode): seq[ptr MoveNode] =
+func openNeighbours*(node: ref MoveNode): seq[ref MoveNode] =
   for (x, y) in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
     let nn = node.relativeNode(x, y)
     if nn.open:
       result.add(nn)
 
-proc generateMoveGrid(level: var Level) =
+proc randomOpenNode*(level: Level; rand: var Rand): ref MoveNode =
+  rand.sample(level.openMoveNodes)
 
-  func openCheck(level: Level; y, x: int): bool =
+proc generateMoveGrid(level: ref Level) =
+
+  func openCheck(level: ref Level; x, y: int): bool =
     for (yOffset, xOffset) in [(0, 0), (1, 0), (0, 1), (1, 1)]:
       let
         xx = x - 1 + xOffset
@@ -52,13 +58,16 @@ proc generateMoveGrid(level: var Level) =
 
   for y in 0..gridHeight - 1:
     for x in 0..gridWidth - 1:
-      var node: MoveNode
-      node.level = level.addr
+      var node = new MoveNode
+      node.level = level
       node.pos = (x, y)
-      node.open = openCheck(level, y, x)
+      node.open = openCheck(level, x, y)
       level.moveGrid[y][x] = node
+      if node.open:
+        level.openMoveNodes.add(level.moveGrid[y][x])
 
-func constructLevel(levelStr: string): Level =
+func constructLevel(levelStr: string): ref Level =
+  result = new Level
   var
     x = 0
     y = 0
@@ -108,5 +117,5 @@ const level1Str = """
 ###########  ##############  ###########
 """
 
-func getLevel1*(): Level =
+func getLevel1*(): ref Level =
   constructLevel(level1Str)

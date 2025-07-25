@@ -22,7 +22,7 @@ type
 
 proc processEvents(window: RenderWindow; keyCallbacks: KeyCallbacks; keysHeld: var KeysHeld) =
   var e: Event
-  while window.pollEvent(e): # Add with -d:release otherwise this crashes: --passC:-fno-stack-protector
+  while window.pollEvent(e): # add with -d:release otherwise this crashes: --passC:-fno-stack-protector
     case e.kind
     of EventType.Closed: window.close()
     of EventType.KeyPressed:
@@ -59,6 +59,9 @@ proc renderThread(params: ptr RenderParams) {.thread, nimcall.} =
           pelletCircle.position = vec2(x * 16, y * 16)
           params.window.draw(pelletCircle)
         else: discard
+        #if node.open:
+        #  pelletCircle.position = vec2(x * 16, y * 16)
+        #  params.window.draw(pelletCircle)
     
     params.girlAnim.sprite.position = vec2(
       params.game.baitStage.baitman.entity.pos[0] * 16,
