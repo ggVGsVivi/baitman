@@ -17,12 +17,15 @@ type
     currentStage*: CurrentStage
     # TODO walkStage: WalkStage
     baitStage*: BaitStage
+    paused*: bool
 
 proc init*(game: var Game) =
   game.currentStage = csBait
   game.baitStage.init()
+  game.paused = true
 
 proc input*(game: var Game; kind: InputKind) =
+  if game.paused: return
   case game.currentStage
   of csWalk:
     discard # TODO after walkStage
@@ -40,6 +43,7 @@ proc input*(game: var Game; kind: InputKind) =
       discard
 
 proc tick*(game: var Game; delta: float64): bool =
+  if game.paused: return true
   case game.currentStage
   of csWalk:
     discard # TODO after walkStage

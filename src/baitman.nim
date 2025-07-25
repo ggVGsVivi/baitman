@@ -1,4 +1,4 @@
-import csfml, csfml/ext
+import csfml
 
 import game
 import anim
@@ -21,23 +21,24 @@ type
     enmySprite: Sprite
 
 proc processEvents(window: RenderWindow; keyCallbacks: KeyCallbacks; keysHeld: var KeysHeld) =
-  for e in window.events:
+  var e: Event
+  while window.pollEvent(e): # Add with -d:release otherwise this crashes: --passC:-fno-stack-protector
     case e.kind
     of EventType.Closed: window.close()
     of EventType.KeyPressed:
       let keycode = e.key.code
-      keysHeld[keycode] = true
       if keyCallbacks[keycode] != nil:
         keyCallbacks[keycode]()
+      keysHeld[keycode] = true
     of EventType.KeyReleased:
       let keycode = e.key.code
       keysHeld[keycode] = false
     else: discard
 
 proc renderThread(params: ptr RenderParams) {.thread, nimcall.} =
-  var debugCircle = newCircleShape(3)
-  debugCircle.origin = vec2(3, 3)
-  debugCircle.fillColor = color(255, 0, 255)
+  var pelletCircle = newCircleShape(3)
+  pelletCircle.origin = vec2(3, 3)
+  pelletCircle.fillColor = color(0xff, 0xee, 0)
 
   # TODO fix this mess
 
@@ -53,13 +54,15 @@ proc renderThread(params: ptr RenderParams) {.thread, nimcall.} =
 
     for y, row in params.game.baitStage.level.moveGrid:
       for x, node in row:
-        if node.open:
-          debugCircle.position = vec2((1 + x) * 16, (1 + y) * 16)
-          params.window.draw(debugCircle)
+        case node.item:
+        of ikPellet:
+          pelletCircle.position = vec2(x * 16, y * 16)
+          params.window.draw(pelletCircle)
+        else: discard
     
     params.girlAnim.sprite.position = vec2(
-      (1 + params.game.baitStage.baitman.entity.pos[0]) * 16,
-      (1 + params.game.baitStage.baitman.entity.pos[1]) * 16
+      params.game.baitStage.baitman.entity.pos[0] * 16,
+      params.game.baitStage.baitman.entity.pos[1] * 16
     )
     params.window.draw(params.girlAnim.sprite)
     params.window.display()
@@ -116,6 +119,8 @@ when isMainModule:
   var keyCallbacks: KeyCallbacks
   keyCallbacks[KeyCode.Escape] = proc() = 
     window.close()
+  keyCallbacks[KeyCode.Space] = proc() =
+    gameState.paused = not gameState.paused
 
   var heldCallbacks: KeyCallbacks
   heldCallbacks[KeyCode.Up] = proc() =
@@ -141,7 +146,7 @@ when isMainModule:
     if delta >= 1 / ticksPerSecond:
       processEvents(window, keyCallbacks, keysHeld)
       for keycode, held in keysHeld:
-        if held and heldCallbacks[keycode] != nil:
+        if heldCallbacks[keycode] != nil and held:
           heldCallbacks[keycode]()
       if not gameState.tick(delta): window.close()
 
