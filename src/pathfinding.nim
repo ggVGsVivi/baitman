@@ -10,26 +10,29 @@ type Node[T] = object
 func `<`*(a, b: Node): bool =
   a.totalDist < b.totalDist
 
-func node[T](n: T; prevI: int; totalDist: float): Node[T] =
+proc node[T](n: T; prevI: int; totalDist: float): ptr Node[T] =
+  result = create(Node[T])
   result.n = n
   result.prevI = prevI
   result.totalDist = totalDist
 
-func calculatePath*[T](
-  src, dest: T;
-  connectProc: proc(n: T): seq[(T, float)] {.noSideEffect.}
+proc calculatePath*[T, H](
+  src: T;
+  destCheckProc: proc(n: T): bool {.noSideEffect.};
+  connectProc: proc(n: T): seq[(T, float)] {.noSideEffect.};
+  hashProc: proc(n: T): H {.noSideEffect.}
 ): seq[T] =
   ## Returns an optimal path of nodes (type T) between a source and a destination.
-  ## Uses a custom proc to obtain a seq of connected nodes and their distances.
+  ## Uses custom procs to check for the destination and obtain a seq of connected nodes and their distances.
   ## Path does not include the source node.
   var
-    next: HeapQueue[Node[T]]
-    cache: HashSet[T]
-    tail: seq[Node[T]]
+    next: HeapQueue[ptr Node[T]]
+    cache: HashSet[H]
+    tail: seq[ptr Node[T]]
   next.push(node(src, -1, 0))
   while next.len > 0:
     let curr = next.pop()
-    if curr.n == dest:
+    if destCheckProc(curr.n):
       result.add(curr.n)
       var
         p = curr.prevI
@@ -42,6 +45,9 @@ func calculatePath*[T](
       break
     tail.add(curr)
     for (c, d) in connectProc(curr.n):
-      if cache.contains(c): continue
+      if hashProc(c) in cache: continue
       next.push(node(c, tail.high, curr.totalDist + d))
-      cache.incl(c)
+      cache.incl(hashProc(c))
+  while tail.len > 0:
+    var n = tail.pop()
+    dealloc(n)

@@ -30,18 +30,16 @@ func relativeNode*(node: ref MoveNode; x, y: int): ref MoveNode =
     yy = node.pos[1] + y
   if xx < 0:
     xx = gridWidth - 1
+  if xx >= gridWidth:
+    xx = 0
   if yy < 0:
     yy = gridHeight - 1
-  node.level.moveGrid[yy mod gridHeight][xx mod gridWidth]
+  if yy >= gridHeight:
+    yy = 0
+  node.level.moveGrid[yy][xx]
 
-func openNeighbours*(node: ref MoveNode): seq[ref MoveNode] =
-  for (x, y) in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
-    let nn = node.relativeNode(x, y)
-    if nn.open:
-      result.add(nn)
-
-proc randomOpenNode*(level: Level; rand: var Rand): ref MoveNode =
-  rand.sample(level.openMoveNodes)
+proc randomOpenNode*(level: ref Level): ref MoveNode =
+  sample(level.openMoveNodes)
 
 proc generateMoveGrid(level: ref Level) =
 
@@ -62,9 +60,9 @@ proc generateMoveGrid(level: ref Level) =
       node.level = level
       node.pos = (x, y)
       node.open = openCheck(level, x, y)
-      level.moveGrid[y][x] = node
       if node.open:
-        level.openMoveNodes.add(level.moveGrid[y][x])
+        level.openMoveNodes.add(node)
+      level.moveGrid[y][x] = node
 
 func constructLevel(levelStr: string): ref Level =
   result = new Level

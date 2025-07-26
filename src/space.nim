@@ -37,17 +37,17 @@ func `*`*[N, T](v: Vec[N, T]; val: T): Vec[N, T] =
   for i in 0..N.high:
     result[i] = v[i] * val
 
-func `/`*[N, T](v: Vec[N, T]; val: T): Vec[N, T] =
+func `/`*[N, T](v: Vec[N, T]; val: T): Vec[N, float64] =
   for i in 0..N.high:
     result[i] = v[i] / val
 
-func len2*[N, T](v: Vec[N, T]): T =
+func len2*[N, T](v: Vec[N, T]): float64 =
   for i in 0..v.high: result += pow(v[i], 2)
 
-func len*[N, T](v: Vec[N, T]): T =
+func len*[N, T](v: Vec[N, T]): float64 =
   sqrt(v.len2)
 
-func normalised*[N, T](v: Vec[N, T]): Vec[N, T] =
+func normalised*[N, T](v: Vec[N, T]): Vec[N, float64] =
   let len = v.len
   if len > 0:
     v / len

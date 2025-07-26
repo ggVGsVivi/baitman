@@ -1,3 +1,5 @@
+import random
+
 import csfml
 
 import game
@@ -18,6 +20,7 @@ type
     game: ptr Game
     girlAnim: Animation
     wallSprite: Sprite
+    fishAnim: Animation
     enmySprite: Sprite
 
 proc processEvents(window: RenderWindow; keyCallbacks: KeyCallbacks; keysHeld: var KeysHeld) =
@@ -63,17 +66,26 @@ proc renderThread(params: ptr RenderParams) {.thread, nimcall.} =
         #  pelletCircle.position = vec2(x * 16, y * 16)
         #  params.window.draw(pelletCircle)
     
+    for fish in params.game.baitStage.fish:
+      params.fishAnim.sprite.position = vec2(
+        fish.entity.pos[0] * 16,
+        fish.entity.pos[1] * 16
+      )
+      params.window.draw(params.fishAnim.sprite)
+    
     params.girlAnim.sprite.position = vec2(
       params.game.baitStage.baitman.entity.pos[0] * 16,
       params.game.baitStage.baitman.entity.pos[1] * 16
     )
     params.window.draw(params.girlAnim.sprite)
+
     params.window.display()
 
 when isMainModule:
   let
     girlTexture = newTexture("res/girl.png")
     wallTexture = newTexture("res/wall.png")
+    fishTexture = newTexture("res/fish.png")
     enmyTexture = newTexture("res/enmy.png")
   var
     animGirlDown = Animation(
@@ -90,10 +102,20 @@ when isMainModule:
     #  speed: 4 / ticksPerSecond,
     #  repeat: true,
     #)
+    animFish = Animation(
+      sprite: newSprite(fishTexture),
+      size: (32, 32),
+      offsets: @[(0, 0)],
+      speed: 0,
+      repeat: true,
+    )
     wallSprite = newSprite(wallTexture)
     enmySprite = newSprite(enmyTexture)
   animGirlDown.sprite.origin = vec2(16, 16)
   enmySprite.origin = vec2(16, 16)
+  animFish.sprite.origin = vec2(16, 16)
+
+  randomize()
 
   var gameState: Game
   gameState.init()
@@ -113,6 +135,7 @@ when isMainModule:
     game: gameState.addr,
     girlAnim: animGirlDown,
     wallSprite: wallSprite,
+    fishAnim: animFish,
     enmySprite: enmySprite,
   )
 
