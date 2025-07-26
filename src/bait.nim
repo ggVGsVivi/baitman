@@ -8,17 +8,17 @@ import pathfinding
 type
   Baitman* = object
     entity*: Entity
-    lastNode: ref MoveNode
+    lastNode: ptr MoveNode
     nodePos: Vec2f
     nodeDirection: Vec2f
   Fish* = object
     entity*: Entity
-    lastNode*: ref MoveNode
+    lastNode*: ptr MoveNode
     nodePos: Vec2f
   Hook* = object
     entity*: Entity
   BaitStage* = object
-    level*: ref Level
+    level*: ptr Level
     baitman*: Baitman
     fish*: seq[Fish]
     hooks*: seq[Hook]
@@ -28,7 +28,7 @@ proc turn(baitman: var Baitman) =
   if turnNode != nil and turnNode.open:
     baitman.nodeDirection = baitman.entity.direction
 
-proc nodeChange(baitman: var Baitman; node: ref MoveNode) =
+proc nodeChange(baitman: var Baitman; node: ptr MoveNode) =
   baitman.lastNode = node
   turn(baitman)
   let bumpCheckNode = baitman.lastNode.relativeNode(baitman.nodeDirection[0].int, baitman.nodeDirection[1].int)
@@ -58,19 +58,19 @@ proc tick(baitman: var Baitman; delta: float64) =
 
 proc nextDirection(fish: Fish): Vec2f =
 
-  func pelletCheck(node: ref MoveNode): bool =
+  func pelletCheck(node: ptr MoveNode): bool =
     node.item == ikPellet
 
-  func openNeighbours(node: ref MoveNode): seq[(ref MoveNode, float)] =
+  func openNeighbours(node: ptr MoveNode): seq[(ptr MoveNode, float)] =
     for (x, y) in [(0, -1), (0, 1), (-1, 0), (1, 0)]:
       let nn = node.relativeNode(x, y)
       if nn.open:
         result.add((nn, 1.0))
   
-  func hash(node: ref MoveNode): (int, int) =
+  func hash(node: ptr MoveNode): (int, int) =
     node.pos
 
-  func directionToNextNode(current, next: ref MoveNode): Vec2f =
+  func directionToNextNode(current, next: ptr MoveNode): Vec2f =
     result = [(next.pos[0] - current.pos[0]).float64, (next.pos[1] - current.pos[1]).float64]
     if result.len > 1:
       result = [0.0, 0.0] - result

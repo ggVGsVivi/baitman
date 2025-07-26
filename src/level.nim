@@ -15,16 +15,16 @@ type
     ikPellet
     ikBigPellet
   MoveNode* = object
-    level: ref Level
+    level: ptr Level
     pos*: (int, int)
     open*: bool
     item*: ItemKind
   Level* = object
     tiles*: array[levelHeight, array[levelWidth, TileKind]]
-    moveGrid*: array[gridHeight, array[gridWidth, ref MoveNode]]
-    openMoveNodes: seq[ref MoveNode]
+    moveGrid*: array[gridHeight, array[gridWidth, ptr MoveNode]]
+    openMoveNodes: seq[ptr MoveNode]
 
-func relativeNode*(node: ref MoveNode; x, y: int): ref MoveNode =
+func relativeNode*(node: ptr MoveNode; x, y: int): ptr MoveNode =
   var
     xx = node.pos[0] + x
     yy = node.pos[1] + y
@@ -38,12 +38,12 @@ func relativeNode*(node: ref MoveNode; x, y: int): ref MoveNode =
     yy = 0
   node.level.moveGrid[yy][xx]
 
-proc randomOpenNode*(level: ref Level): ref MoveNode =
+proc randomOpenNode*(level: ptr Level): ptr MoveNode =
   sample(level.openMoveNodes)
 
-proc generateMoveGrid(level: ref Level) =
+proc generateMoveGrid(level: ptr Level) =
 
-  func openCheck(level: ref Level; x, y: int): bool =
+  func openCheck(level: ptr Level; x, y: int): bool =
     for (yOffset, xOffset) in [(0, 0), (1, 0), (0, 1), (1, 1)]:
       let
         xx = x - 1 + xOffset
@@ -56,7 +56,7 @@ proc generateMoveGrid(level: ref Level) =
 
   for y in 0..gridHeight - 1:
     for x in 0..gridWidth - 1:
-      var node = new MoveNode
+      var node = create(MoveNode)
       node.level = level
       node.pos = (x, y)
       node.open = openCheck(level, x, y)
@@ -64,8 +64,8 @@ proc generateMoveGrid(level: ref Level) =
         level.openMoveNodes.add(node)
       level.moveGrid[y][x] = node
 
-func constructLevel(levelStr: string): ref Level =
-  result = new Level
+proc constructLevel(levelStr: string): ptr Level =
+  result = create(Level)
   var
     x = 0
     y = 0
@@ -115,5 +115,5 @@ const level1Str = """
 ###########  ##############  ###########
 """
 
-func getLevel1*(): ref Level =
+proc getLevel1*(): ptr Level =
   constructLevel(level1Str)
