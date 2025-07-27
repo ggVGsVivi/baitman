@@ -41,8 +41,13 @@ func `/`*[N, T](v: Vec[N, T]; val: T): Vec[N, float64] =
   for i in 0..N.high:
     result[i] = v[i] / val
 
+func sum*[N, T](v: Vec[N, T]): T =
+  for i in 0..N.high:
+    result += v[i]
+
 func len2*[N, T](v: Vec[N, T]): float64 =
-  for i in 0..v.high: result += pow(v[i], 2)
+  for i in 0..N.high:
+    result += pow(v[i], 2)
 
 func len*[N, T](v: Vec[N, T]): float64 =
   sqrt(v.len2)

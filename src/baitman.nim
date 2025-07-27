@@ -174,7 +174,7 @@ when isMainModule:
       for keycode, held in keysHeld:
         if heldCallbacks[keycode] != nil and held:
           heldCallbacks[keycode]()
-      if not gameState.tick(delta): window.close()
+      if not gameState.tick(1 / ticksPerSecond): window.close()
 
       discard animGirlDown.next()
 
