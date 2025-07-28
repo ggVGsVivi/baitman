@@ -1,5 +1,7 @@
 import random
 
+import space
+
 const
   levelWidth = 40
   levelHeight = 28
@@ -16,7 +18,7 @@ type
     ikBigPellet
   MoveNode* = object
     level: ptr Level
-    pos*: (int, int)
+    pos*: Vec2i
     open*: bool
     item*: ItemKind
   Level* = object
@@ -24,10 +26,10 @@ type
     moveGrid*: array[gridHeight, array[gridWidth, ptr MoveNode]]
     openMoveNodes: seq[ptr MoveNode]
 
-func relativeNode*(node: ptr MoveNode; x, y: int): ptr MoveNode =
+func relativeNode*(node: ptr MoveNode; direction: Vec2i): ptr MoveNode =
   var
-    xx = node.pos[0] + x
-    yy = node.pos[1] + y
+    xx = node.pos.x + direction.x
+    yy = node.pos.y + direction.y
   if xx < 0:
     xx = gridWidth - 1
   if xx >= gridWidth:
@@ -58,7 +60,7 @@ proc generateMoveGrid(level: ptr Level) =
     for x in 0..gridWidth - 1:
       var node = create(MoveNode)
       node.level = level
-      node.pos = (x, y)
+      node.pos = [x, y]
       node.open = openCheck(level, x, y)
       if node.open:
         level.openMoveNodes.add(node)

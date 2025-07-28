@@ -32,10 +32,11 @@ proc calculatePath*[T, H](
   next.push(node(src, -1, 0))
   while next.len > 0:
     let curr = next.pop()
+    tail.add(curr)
     if destCheckProc(curr.n):
+      if curr.prevI == -1: break
       result.add(curr.n)
-      var
-        p = curr.prevI
+      var p = curr.prevI
       while true:
         let n = tail[p]
         p = n.prevI
@@ -43,7 +44,6 @@ proc calculatePath*[T, H](
         result.add(n.n)
       result.reverse()
       break
-    tail.add(curr)
     for (c, d) in connectProc(curr.n):
       if hashProc(c) in cache: continue
       next.push(node(c, tail.high, curr.totalDist + d))

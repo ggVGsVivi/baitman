@@ -8,14 +8,21 @@ type
   Vec2f* = Vec2[float64]
   Vec3f* = Vec3[float64]
   Vec4f* = Vec4[float64]
+  Vec2i* = Vec2[int]
+  Vec3i* = Vec3[int]
+  Vec4i* = Vec4[int]
 
-proc `$`*[N, T](v: Vec[N, T]): string =
+func `$`*[N, T](v: Vec[N, T]): string =
   result = "["
   for i in 0..N.high:
     if i != 0:
       result &= ", "
     result &= $v[i]
   result &= "]"
+
+# idk how to do this using generics
+converter toVec2f*(v: Vec2i): Vec2f = [v[0].float64, v[1].float64]
+converter toVec2i*(v: Vec2f): Vec2i = [v[0].int, v[1].int]
 
 func x*[N, T](v: Vec[N, T]): T = v[0]
 
@@ -45,15 +52,15 @@ func sum*[N, T](v: Vec[N, T]): T =
   for i in 0..N.high:
     result += v[i]
 
-func len2*[N, T](v: Vec[N, T]): float64 =
+func mag2*[N, T](v: Vec[N, T]): float64 =
   for i in 0..N.high:
-    result += pow(v[i], 2)
+    result += pow(v[i].float64, 2.0)
 
-func len*[N, T](v: Vec[N, T]): float64 =
-  sqrt(v.len2)
+func mag*[N, T](v: Vec[N, T]): float64 =
+  sqrt(v.mag2)
 
 func normalised*[N, T](v: Vec[N, T]): Vec[N, float64] =
-  let len = v.len
+  let len = v.mag
   if len > 0:
     v / len
   else:
