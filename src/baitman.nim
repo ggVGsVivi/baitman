@@ -2,6 +2,7 @@ import random
 import strformat
 
 import csfml
+import csfml/audio
 
 import game
 import anim
@@ -159,6 +160,11 @@ when isMainModule:
   timeText.position = vec2(2, 450)
   timeText.scale = vec2(0.5, 0.5)
 
+  var music = newMusic("res/huhh.wav")
+  music.volume = 200
+  music.loop = true
+  music.play()
+
   var view = newView(rect(0, 0, viewWidth, viewHeight));
   window.view = view
   
@@ -209,6 +215,11 @@ when isMainModule:
         if heldCallbacks[keycode] != nil and held:
           heldCallbacks[keycode]()
       if not gameState.tick(1 / ticksPerSecond): window.close()
+
+      if gameState.baitStage.time <= 0:
+        music.stop()
+      elif gameState.baitStage.time < 30:
+        music.pitch = 1.5
 
       discard animGirlDown.next()
 
