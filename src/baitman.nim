@@ -161,7 +161,6 @@ when isMainModule:
   timeText.scale = vec2(0.5, 0.5)
 
   var music = newMusic("res/huhh.wav")
-  music.volume = 200
   music.loop = true
   music.play()
 

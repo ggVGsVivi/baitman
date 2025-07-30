@@ -68,11 +68,12 @@ proc nextDirection(fish: Fish): Vec2f =
   func pelletCheck(node: ptr MoveNode): bool =
     node.item == ikPellet
 
-  func openNeighbours(node: ptr MoveNode): seq[(ptr MoveNode, float)] =
+  proc openNeighbours(node: ptr MoveNode): seq[(ptr MoveNode, float)] =
     for dir in [[0, -1], [0, 1], [-1, 0], [1, 0]]:
       let nn = node.relativeNode(dir)
       if nn.open:
         result.add((nn, 1.0))
+      result.shuffle()
   
   func hash(node: ptr MoveNode): Vec2i =
     node.pos
@@ -83,10 +84,9 @@ proc nextDirection(fish: Fish): Vec2f =
       result = [0.0, 0.0] - result
     result = result.normalised()
 
-  let path = calculatePath(fish.lastNode, pelletCheck, openNeighbours, hash)
+  let path = calculatePath(fish.lastNode, pelletCheck, openNeighbours, hash, some(3.0))
   if path.len > 0:
-    let nextNode = path[0]
-    return directionToNextNode(fish.lastNode, nextNode)
+    return directionToNextNode(fish.lastNode, path[0])
   else:
     let open = fish.lastNode.openNeighbours()
     if open.len > 0:
@@ -150,7 +150,7 @@ proc tick*(baitStage: var BaitStage; delta: float64) =
   for i in 0..baitStage.hooks.high:
     baitStage.hooks[i].tick(delta)
   baitStage.catchFish()
-  while baitStage.fish.len < 30:
+  while baitStage.fish.len < 10:
     baitStage.spawnFish()
   while baitStage.hooks.len < 3:
     baitStage.spawnHook()
