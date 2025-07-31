@@ -40,7 +40,7 @@ proc input*(game: var Game; kind: InputKind) =
     of ikMoveRight:
       game.baitStage.baitman.entity.direction = [1, 0]
     of ikInteract:
-      discard
+      game.baitStage.useAbility()
 
 proc tick*(game: var Game; delta: float64): bool =
   if game.paused: return true

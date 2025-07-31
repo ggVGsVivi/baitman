@@ -38,22 +38,26 @@ proc calculatePath*[T, H](
     let curr = next.pop()
     tail.add(curr)
     if distanceCap.isSome and curr.totalDist > distanceCap.get:
+      while next.len > 0:
+        dealloc(next.pop())
       break
     if destCheckProc(curr.n):
-      if curr.prevI == -1: break
+      if curr.prevI == -1:
+        break
       result.add(curr.n)
       var p = curr.prevI
       while true:
         let n = tail[p]
         p = n.prevI
-        if p == -1: break
+        if p == -1:
+          break
         result.add(n.n)
       result.reverse()
       break
     for (c, d) in connectProc(curr.n):
-      if hashProc(c) in cache: continue
+      if hashProc(c) in cache:
+        continue
       next.push(node(c, tail.high, curr.totalDist + d))
       cache.incl(hashProc(c))
   while tail.len > 0:
-    var n = tail.pop()
-    dealloc(n)
+    dealloc(tail.pop())

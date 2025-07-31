@@ -6,11 +6,15 @@ import level
 import pathfinding
 
 type
+  AbilityKind* = enum
+    akNone
+    akBigPellet
   Baitman* = object
     entity*: Entity
     lastNode: ptr MoveNode
     nodePos: Vec2f
     nodeDirection: Vec2f
+    nextItem: ItemKind
   Fish* = object
     entity*: Entity
     lastNode*: ptr MoveNode
@@ -18,11 +22,17 @@ type
   Hook* = object
     entity*: Entity
     node*: ptr MoveNode
+  Ability* = object
+    entity*: Entity
+    node*: ptr MoveNode
+    kind*: AbilityKind
   BaitStage* = object
     level*: ptr Level
     baitman*: Baitman
     fish*: seq[Fish]
     hooks*: seq[Hook]
+    abilities*: seq[Ability]
+    currentAbility*: AbilityKind
     time*: float64
     score*: int
 
@@ -30,6 +40,12 @@ proc turn(baitman: var Baitman) =
   let turnNode = baitman.lastNode.relativeNode(baitman.entity.direction)
   if turnNode != nil and turnNode.open:
     baitman.nodeDirection = baitman.entity.direction
+
+proc placeItem(baitman: var Baitman) =
+  const priority = [ikBigPellet, ikPellet, ikNone]
+  if priority.find(baitman.lastNode.item) > priority.find(baitman.nextItem):
+    baitman.lastNode.item = baitman.nextItem
+  baitman.nextItem = ikPellet
 
 proc nodeChange(baitman: var Baitman; node: ptr MoveNode) =
   baitman.lastNode = node
@@ -39,9 +55,7 @@ proc nodeChange(baitman: var Baitman; node: ptr MoveNode) =
     baitman.nodePos = baitman.nodeDirection * (baitman.nodePos - baitman.nodePos.normalised).mag
   else:
     baitman.nodePos = [0, 0]
-  
-  # TODO different placeable items
-  baitman.lastNode.item = ikPellet
+  baitman.placeItem()
 
 proc movement(baitman: var Baitman; delta: float64) =
   # TODO remake this at some point cause honestly it seems a bit overcomplicated
@@ -57,13 +71,23 @@ proc movement(baitman: var Baitman; delta: float64) =
   else:
     turn(baitman)
     baitman.nodePos = [0, 0]
+    baitman.placeItem()
   baitman.entity.direction = baitman.nodeDirection
   baitman.entity.pos = baitman.lastNode.pos.Vec2f + baitman.nodePos
+
+proc init(baitman: var Baitman) =
+  baitman.nodeDirection = [-1, 0]
+  baitman.entity.direction = [-1, 0]
+  baitman.entity.speed = 9
+  baitman.nextItem = ikPellet
 
 proc tick(baitman: var Baitman; delta: float64) =
   baitman.movement(delta)
 
 proc nextDirection(fish: Fish): Vec2f =
+
+  func bigPelletCheck(node: ptr MoveNode): bool =
+    node.item == ikBigPellet
 
   func pelletCheck(node: ptr MoveNode): bool =
     node.item == ikPellet
@@ -84,20 +108,26 @@ proc nextDirection(fish: Fish): Vec2f =
       result = [0.0, 0.0] - result
     result = result.normalised()
 
-  let path = calculatePath(fish.lastNode, pelletCheck, openNeighbours, hash, some(3.0))
-  if path.len > 0:
-    return directionToNextNode(fish.lastNode, path[0])
-  else:
-    let open = fish.lastNode.openNeighbours()
-    if open.len > 0:
-      return directionToNextNode(fish.lastNode, sample(open)[0])
+  let bigPelletPath = calculatePath(fish.lastNode, bigPelletCheck, openNeighbours, hash, some(6.0))
+  if bigPelletPath.len > 0:
+    return directionToNextNode(fish.lastNode, bigPelletPath[0])
+  let pelletPath = calculatePath(fish.lastNode, pelletCheck, openNeighbours, hash, some(3.0))
+  if pelletPath.len > 0:
+    return directionToNextNode(fish.lastNode, pelletPath[0])
+  let open = fish.lastNode.openNeighbours()
+  if open.len > 0:
+    return directionToNextNode(fish.lastNode, sample(open)[0])
 
 proc tick(fish: var Fish; delta: float64) =
   fish.nodePos = fish.nodePos + fish.entity.direction * fish.entity.speed * delta
   while fish.nodePos.sum.abs >= 1:
     fish.lastNode = fish.lastNode.relativeNode(fish.entity.direction)
-    if fish.lastNode.item == ikPellet:
+    case fish.lastNode.item
+    of ikPellet:
       fish.lastNode.item = ikNone
+    of ikBigPellet:
+      fish.lastNode.item = ikNone
+    else: discard
     fish.entity.direction = fish.nextDirection()
     fish.nodePos = fish.entity.direction * (fish.nodePos - fish.nodePos.normalised).mag
   fish.entity.pos = fish.lastNode.pos.Vec2f + fish.nodePos
@@ -105,12 +135,15 @@ proc tick(fish: var Fish; delta: float64) =
 proc tick(hook: var Hook; delta: float64) =
   hook.entity.pos = hook.node.pos
 
+proc tick(ability: var Ability; delta: float64) =
+  ability.entity.pos = ability.node.pos
+
 proc spawnFish(baitStage: var BaitStage) =
   var fish: Fish
   fish.lastNode = baitStage.level.randomOpenNode()
   fish.entity.pos = fish.lastNode.pos
   fish.entity.direction = fish.nextDirection()
-  fish.entity.speed = 1.0 + rand(5.0)
+  fish.entity.speed = 2.0 + rand(4.0)
   baitStage.fish.add(fish)
 
 proc spawnHook(baitStage: var BaitStage) =
@@ -131,12 +164,32 @@ proc catchFish(baitStage: var BaitStage) =
         baitStage.hooks.delete(j)
         break
 
+proc spawnAbility(baitStage: var BaitStage) =
+  var ability: Ability
+  ability.node = baitStage.level.randomOpenNode()
+  ability.entity.pos = ability.node.pos
+  ability.kind = akBigPellet
+  baitStage.abilities.add(ability)
+
+proc collectAbilities(baitStage: var BaitStage) =
+  for i in countDown(baitStage.abilities.high, 0):
+    let ability = baitStage.abilities[i]
+    if (baitStage.baitman.entity.pos - ability.entity.pos).mag < 1:
+      baitStage.currentAbility = ability.kind
+      baitStage.abilities.delete(i)
+
+proc useAbility*(baitStage: var BaitStage) =
+  case baitStage.currentAbility
+  of akBigPellet:
+    baitStage.baitman.nextItem = ikBigPellet
+  of akNone: discard
+  baitStage.currentAbility = akNone
+
 proc init*(baitStage: var BaitStage) =
-  baitStage.level = getLevel1()
-  baitStage.baitman.nodeDirection = [-1, 0]
-  baitStage.baitman.entity.direction = [-1, 0]
+  baitStage.level = createLevel(level1Str)
+  baitStage.baitman.init()
   baitStage.baitman.lastNode = baitStage.level.moveGrid[23][20]
-  baitStage.baitman.entity.speed = 9
+  baitStage.currentAbility = akBigPellet
   baitStage.time = 180
 
 proc tick*(baitStage: var BaitStage; delta: float64) =
@@ -144,13 +197,22 @@ proc tick*(baitStage: var BaitStage; delta: float64) =
     baitStage.time = 0
     return
   baitStage.time -= delta
+
   baitStage.baitman.tick(delta)
+
   for i in 0..baitStage.fish.high:
     baitStage.fish[i].tick(delta)
   for i in 0..baitStage.hooks.high:
     baitStage.hooks[i].tick(delta)
   baitStage.catchFish()
+
+  for i in 0..baitStage.abilities.high:
+    baitStage.abilities[i].tick(delta)
+  baitStage.collectAbilities()
+
   while baitStage.fish.len < 10:
     baitStage.spawnFish()
   while baitStage.hooks.len < 3:
     baitStage.spawnHook()
+  while baitStage.abilities.len < 2:
+    baitStage.spawnAbility()

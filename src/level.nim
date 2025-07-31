@@ -66,7 +66,7 @@ proc generateMoveGrid(level: ptr Level) =
         level.openMoveNodes.add(node)
       level.moveGrid[y][x] = node
 
-proc constructLevel(levelStr: string): ptr Level =
+proc createLevel*(levelStr: string): ptr Level =
   result = create(Level)
   var
     x = 0
@@ -86,7 +86,7 @@ proc constructLevel(levelStr: string): ptr Level =
 
   result.generateMoveGrid()
 
-const level1Str = """
+const level1Str* = """
 ###########  ##############  ###########
 ######             ##             ######
 ######             ##             ######
@@ -116,6 +116,3 @@ const level1Str = """
 ######                            ######
 ###########  ##############  ###########
 """
-
-proc getLevel1*(): ptr Level =
-  constructLevel(level1Str)
