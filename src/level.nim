@@ -26,7 +26,7 @@ type
     moveGrid*: array[gridHeight, array[gridWidth, ptr MoveNode]]
     openMoveNodes: seq[ptr MoveNode]
 
-func relativeNode*(node: ptr MoveNode; direction: Vec2i): ptr MoveNode =
+proc relativeNode*(node: ptr MoveNode; direction: Vec2i): ptr MoveNode =
   var
     xx = node.pos.x + direction.x
     yy = node.pos.y + direction.y
@@ -62,7 +62,8 @@ proc generateMoveGrid(level: ptr Level) =
       node.level = level
       node.pos = [x, y]
       node.open = openCheck(level, x, y)
-      if node.open:
+      # don't include the edges
+      if node.open and x in 1..gridWidth - 2 and y in 1..gridHeight - 2:
         level.openMoveNodes.add(node)
       level.moveGrid[y][x] = node
 

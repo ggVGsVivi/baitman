@@ -1,6 +1,5 @@
 import math
 
-import entity
 import bait
 
 type
@@ -32,13 +31,13 @@ proc input*(game: var Game; kind: InputKind) =
   of csBait:
     case kind
     of ikMoveUp:
-      game.baitStage.baitman.entity.direction = [0, -1]
+      game.baitStage.baitman.inputDirection = [0, -1]
     of ikMoveDown:
-      game.baitStage.baitman.entity.direction = [0, 1]
+      game.baitStage.baitman.inputDirection = [0, 1]
     of ikMoveLeft:
-      game.baitStage.baitman.entity.direction = [-1, 0]
+      game.baitStage.baitman.inputDirection = [-1, 0]
     of ikMoveRight:
-      game.baitStage.baitman.entity.direction = [1, 0]
+      game.baitStage.baitman.inputDirection = [1, 0]
     of ikInteract:
       game.baitStage.useAbility()
 

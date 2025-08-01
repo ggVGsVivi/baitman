@@ -9,11 +9,14 @@ type
   AbilityKind* = enum
     akNone
     akBigPellet
+  EEntity = object
+    node: ptr MoveNode
+    nextNode: ptr MoveNode
+    speed: float64
+    progress: float64
   Baitman* = object
-    entity*: Entity
-    lastNode: ptr MoveNode
-    nodePos: Vec2f
-    nodeDirection: Vec2f
+    entity*: EEntity
+    inputDirection*: Vec2i
     nextItem: ItemKind
   Fish* = object
     entity*: Entity
@@ -36,48 +39,49 @@ type
     time*: float64
     score*: int
 
-proc turn(baitman: var Baitman) =
-  let turnNode = baitman.lastNode.relativeNode(baitman.entity.direction)
-  if turnNode != nil and turnNode.open:
-    baitman.nodeDirection = baitman.entity.direction
+func direction(entity: EEntity): Vec2i =
+  if entity.nextNode == nil:
+    return [0, 0]
+  result = entity.nextNode.pos - entity.node.pos
+  # maybe there's a better way to do this
+  if result.sum.abs > 1:
+    result = ([0, 0] - result).normalised
+
+func pos*(entity: EEntity): Vec2f =
+  entity.node.pos.Vec2f + entity.direction.Vec2f * entity.progress
+
+proc turn(baitman: var Baitman): bool =
+  let turnNode = baitman.entity.node.relativeNode(baitman.inputDirection)
+  if turnNode.open:
+    baitman.entity.nextNode = turnNode
+    return true
+  false
 
 proc placeItem(baitman: var Baitman) =
   const priority = [ikBigPellet, ikPellet, ikNone]
-  if priority.find(baitman.lastNode.item) > priority.find(baitman.nextItem):
-    baitman.lastNode.item = baitman.nextItem
+  if priority.find(baitman.entity.node.item) > priority.find(baitman.nextItem):
+    baitman.entity.node.item = baitman.nextItem
   baitman.nextItem = ikPellet
 
-proc nodeChange(baitman: var Baitman; node: ptr MoveNode) =
-  baitman.lastNode = node
-  turn(baitman)
-  let bumpCheckNode = baitman.lastNode.relativeNode(baitman.nodeDirection)
-  if bumpCheckNode != nil and bumpCheckNode.open:
-    baitman.nodePos = baitman.nodeDirection * (baitman.nodePos - baitman.nodePos.normalised).mag
-  else:
-    baitman.nodePos = [0, 0]
-  baitman.placeItem()
-
 proc movement(baitman: var Baitman; delta: float64) =
-  # TODO remake this at some point cause honestly it seems a bit overcomplicated
-  var nextNode = baitman.lastNode.relativeNode(baitman.nodeDirection)
-  if nextNode != nil and nextNode.open:
-    baitman.nodePos = baitman.nodePos + baitman.nodeDirection * baitman.entity.speed * delta
-    while baitman.nodePos.sum.abs >= 1:
-      baitman.nodeChange(nextNode)
-      # for super high speeds
-      if baitman.nodePos.sum.abs < 1:
-        break
-      nextNode = baitman.lastNode.relativeNode(baitman.nodeDirection)
+  if baitman.entity.nextNode != nil:
+    baitman.entity.progress += baitman.entity.speed * delta
+    while baitman.entity.progress >= 1:
+      baitman.entity.progress -= 1
+      let direction = baitman.entity.direction
+      baitman.entity.node = baitman.entity.nextNode
+      if not baitman.turn():
+        baitman.entity.nextNode = baitman.entity.node.relativeNode(direction)
+        if not baitman.entity.nextNode.open:
+          baitman.entity.nextNode = nil
+          baitman.entity.progress = 0
+      baitman.placeItem()
   else:
-    turn(baitman)
-    baitman.nodePos = [0, 0]
-    baitman.placeItem()
-  baitman.entity.direction = baitman.nodeDirection
-  baitman.entity.pos = baitman.lastNode.pos.Vec2f + baitman.nodePos
+    discard baitman.turn()
+  baitman.inputDirection = baitman.entity.direction
 
 proc init(baitman: var Baitman) =
-  baitman.nodeDirection = [-1, 0]
-  baitman.entity.direction = [-1, 0]
+  baitman.inputDirection = [-1, 0]
   baitman.entity.speed = 9
   baitman.nextItem = ikPellet
 
@@ -188,7 +192,7 @@ proc useAbility*(baitStage: var BaitStage) =
 proc init*(baitStage: var BaitStage) =
   baitStage.level = createLevel(level1Str)
   baitStage.baitman.init()
-  baitStage.baitman.lastNode = baitStage.level.moveGrid[23][20]
+  baitStage.baitman.entity.node = baitStage.level.moveGrid[23][20]
   baitStage.currentAbility = akBigPellet
   baitStage.time = 180
 

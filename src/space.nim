@@ -59,7 +59,7 @@ func mag2*[N, T](v: Vec[N, T]): float64 =
 func mag*[N, T](v: Vec[N, T]): float64 =
   sqrt(v.mag2)
 
-func normalised*[N, T](v: Vec[N, T]): Vec[N, float64] =
+func normalised*[N](v: Vec[N, float64]): Vec[N, float64] =
   let len = v.mag
   if len > 0:
     v / len
