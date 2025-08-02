@@ -1,7 +1,6 @@
 import random
 
 import space
-import entity
 import level
 import pathfinding
 
@@ -9,25 +8,21 @@ type
   AbilityKind* = enum
     akNone
     akBigPellet
-  EEntity = object
+  Entity = object
     node: ptr MoveNode
     nextNode: ptr MoveNode
     speed: float64
     progress: float64
   Baitman* = object
-    entity*: EEntity
+    entity*: Entity
     inputDirection*: Vec2i
     nextItem: ItemKind
   Fish* = object
     entity*: Entity
-    lastNode*: ptr MoveNode
-    nodePos: Vec2f
   Hook* = object
     entity*: Entity
-    node*: ptr MoveNode
   Ability* = object
     entity*: Entity
-    node*: ptr MoveNode
     kind*: AbilityKind
   BaitStage* = object
     level*: ptr Level
@@ -39,7 +34,7 @@ type
     time*: float64
     score*: int
 
-func direction(entity: EEntity): Vec2i =
+func direction(entity: Entity): Vec2i =
   if entity.nextNode == nil:
     return [0, 0]
   result = entity.nextNode.pos - entity.node.pos
@@ -47,7 +42,9 @@ func direction(entity: EEntity): Vec2i =
   if result.sum.abs > 1:
     result = ([0, 0] - result).normalised
 
-func pos*(entity: EEntity): Vec2f =
+func pos*(entity: Entity): Vec2f =
+  if entity.node == nil:
+    return [0, 0]
   entity.node.pos.Vec2f + entity.direction.Vec2f * entity.progress
 
 proc turn(baitman: var Baitman): bool =
@@ -88,12 +85,12 @@ proc init(baitman: var Baitman) =
 proc tick(baitman: var Baitman; delta: float64) =
   baitman.movement(delta)
 
-proc nextDirection(fish: Fish): Vec2f =
+proc path(fish: Fish): ptr MoveNode =
 
-  func bigPelletCheck(node: ptr MoveNode): bool =
+  proc bigPelletCheck(node: ptr MoveNode): bool =
     node.item == ikBigPellet
 
-  func pelletCheck(node: ptr MoveNode): bool =
+  proc pelletCheck(node: ptr MoveNode): bool =
     node.item == ikPellet
 
   proc openNeighbours(node: ptr MoveNode): seq[(ptr MoveNode, float)] =
@@ -103,57 +100,48 @@ proc nextDirection(fish: Fish): Vec2f =
         result.add((nn, 1.0))
       result.shuffle()
   
-  func hash(node: ptr MoveNode): Vec2i =
+  proc hash(node: ptr MoveNode): Vec2i =
     node.pos
 
-  func directionToNextNode(current, next: ptr MoveNode): Vec2f =
-    result = next.pos - current.pos
-    if result.sum.abs > 1:
-      result = [0.0, 0.0] - result
-    result = result.normalised()
-
-  let bigPelletPath = calculatePath(fish.lastNode, bigPelletCheck, openNeighbours, hash, some(6.0))
+  let bigPelletPath = calculatePath(fish.entity.node, bigPelletCheck, openNeighbours, hash, some(6.0))
   if bigPelletPath.len > 0:
-    return directionToNextNode(fish.lastNode, bigPelletPath[0])
-  let pelletPath = calculatePath(fish.lastNode, pelletCheck, openNeighbours, hash, some(3.0))
+    return bigPelletPath[0]
+  let pelletPath = calculatePath(fish.entity.node, pelletCheck, openNeighbours, hash, some(3.0))
   if pelletPath.len > 0:
-    return directionToNextNode(fish.lastNode, pelletPath[0])
-  let open = fish.lastNode.openNeighbours()
+    return pelletPath[0]
+  let open = fish.entity.node.openNeighbours()
   if open.len > 0:
-    return directionToNextNode(fish.lastNode, sample(open)[0])
+    return sample(open)[0]
 
 proc tick(fish: var Fish; delta: float64) =
-  fish.nodePos = fish.nodePos + fish.entity.direction * fish.entity.speed * delta
-  while fish.nodePos.sum.abs >= 1:
-    fish.lastNode = fish.lastNode.relativeNode(fish.entity.direction)
-    case fish.lastNode.item
+  fish.entity.progress += fish.entity.speed * delta
+  while fish.entity.progress >= 1:
+    fish.entity.progress -= 1
+    fish.entity.node = fish.entity.nextNode
+    case fish.entity.node.item
     of ikPellet:
-      fish.lastNode.item = ikNone
+      fish.entity.node.item = ikNone
     of ikBigPellet:
-      fish.lastNode.item = ikNone
+      fish.entity.node.item = ikNone
     else: discard
-    fish.entity.direction = fish.nextDirection()
-    fish.nodePos = fish.entity.direction * (fish.nodePos - fish.nodePos.normalised).mag
-  fish.entity.pos = fish.lastNode.pos.Vec2f + fish.nodePos
+    fish.entity.nextNode = fish.path()
 
 proc tick(hook: var Hook; delta: float64) =
-  hook.entity.pos = hook.node.pos
+  discard
 
 proc tick(ability: var Ability; delta: float64) =
-  ability.entity.pos = ability.node.pos
+  discard
 
 proc spawnFish(baitStage: var BaitStage) =
   var fish: Fish
-  fish.lastNode = baitStage.level.randomOpenNode()
-  fish.entity.pos = fish.lastNode.pos
-  fish.entity.direction = fish.nextDirection()
+  fish.entity.node = baitStage.level.randomOpenNode()
+  fish.entity.nextNode = fish.path()
   fish.entity.speed = 2.0 + rand(4.0)
   baitStage.fish.add(fish)
 
 proc spawnHook(baitStage: var BaitStage) =
   var hook: Hook
-  hook.node = baitStage.level.randomOpenNode()
-  hook.entity.pos = hook.node.pos
+  hook.entity.node = baitStage.level.randomOpenNode()
   baitStage.hooks.add(hook)
 
 proc catchFish(baitStage: var BaitStage) =
@@ -170,8 +158,7 @@ proc catchFish(baitStage: var BaitStage) =
 
 proc spawnAbility(baitStage: var BaitStage) =
   var ability: Ability
-  ability.node = baitStage.level.randomOpenNode()
-  ability.entity.pos = ability.node.pos
+  ability.entity.node = baitStage.level.randomOpenNode()
   ability.kind = akBigPellet
   baitStage.abilities.add(ability)
 
