@@ -1,5 +1,6 @@
 import math
 
+import walk
 import bait
 
 type
@@ -14,7 +15,7 @@ type
     csBait
   Game* = object
     currentStage*: CurrentStage
-    # TODO walkStage: WalkStage
+    walkStage*: WalkStage
     baitStage*: BaitStage
     paused*: bool
 
@@ -45,7 +46,7 @@ proc tick*(game: var Game; delta: float64): bool =
   if game.paused: return true
   case game.currentStage
   of csWalk:
-    discard # TODO after walkStage
+    game.walkStage.tick(delta)
   of csBait:
     game.baitStage.tick(delta)
   true

@@ -42,6 +42,7 @@ proc renderThread(params: ptr RenderParams) {.thread.} =
   # TODO move this mess
   let
     texGirl = newTexture("res/girl.png")
+    texBaitman = newTexture("res/baitman.png")
     texWall = newTexture("res/wall.png")
     texFish = newTexture("res/fish.png")
     texHook = newTexture("res/hook.png")
@@ -62,22 +63,32 @@ proc renderThread(params: ptr RenderParams) {.thread.} =
   abilitySquare.fillColor = Black
 
   var animGirlDown = Animation(
-      sprite: newSprite(texGirl),
-      size: (32, 32),
-      offsets: @[(0, 0), (32, 0), (0, 0), (64, 0)],
-      speed: 4,
-      repeat: true,
-    )
+    sprite: newSprite(texGirl),
+    size: (32, 32),
+    offsets: @[(0, 0), (32, 0), (0, 0), (64, 0)],
+    speed: 4,
+    repeat: true,
+  )
   animGirlDown.sprite.origin = vec2(16, 16)
   params.animations.add(animGirlDown.addr)
 
+  var animBaitman = Animation(
+    sprite: newSprite(texBaitman),
+    size: (32, 32),
+    offsets: @[(0, 0), (32, 0)],
+    speed: 6,
+    repeat: true,
+  )
+  animBaitman.sprite.origin = vec2(16, 16)
+  params.animations.add(animBaitman.addr)
+
   var animFish = Animation(
-      sprite: newSprite(texFish),
-      size: (32, 32),
-      offsets: @[(0, 0)],
-      speed: 0,
-      repeat: true,
-    )
+    sprite: newSprite(texFish),
+    size: (32, 32),
+    offsets: @[(0, 0)],
+    speed: 0,
+    repeat: true,
+  )
   animFish.sprite.origin = vec2(16, 16)
   params.animations.add(animFish.addr)
 
@@ -124,7 +135,8 @@ proc renderThread(params: ptr RenderParams) {.thread.} =
     
     for i in 0..params.game.baitStage.abilities.high:
       # this is probably unsafe
-      if i > params.game.baitStage.abilities.high: continue
+      if i > params.game.baitStage.abilities.high:
+        continue
       let ability = params.game.baitStage.abilities[i]
       case ability.kind
       of akBigPellet:
@@ -137,7 +149,8 @@ proc renderThread(params: ptr RenderParams) {.thread.} =
     
     for i in 0..params.game.baitStage.hooks.high:
       # this too
-      if i > params.game.baitStage.hooks.high: continue
+      if i > params.game.baitStage.hooks.high:
+        continue
       let hook = params.game.baitStage.hooks[i]
       sprHook.position = vec2(
         hook.entity.pos[0] * 16,
@@ -147,7 +160,8 @@ proc renderThread(params: ptr RenderParams) {.thread.} =
     
     for i in 0..params.game.baitStage.fish.high:
       # this too
-      if i > params.game.baitStage.fish.high: continue
+      if i > params.game.baitStage.fish.high:
+        continue
       let fish = params.game.baitStage.fish[i]
       animFish.sprite.position = vec2(
         fish.entity.pos[0] * 16,
@@ -155,11 +169,11 @@ proc renderThread(params: ptr RenderParams) {.thread.} =
       )
       params.window.draw(animFish.sprite)
        
-    animGirlDown.sprite.position = vec2(
+    animBaitman.sprite.position = vec2(
       params.game.baitStage.baitman.entity.pos[0] * 16,
       params.game.baitStage.baitman.entity.pos[1] * 16
     )
-    params.window.draw(animGirlDown.sprite)
+    params.window.draw(animBaitman.sprite)
 
     timeText.str = fmt"{params.game.baitStage.time.int:03}"
     params.window.draw(timeText)
