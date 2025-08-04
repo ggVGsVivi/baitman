@@ -1,8 +1,7 @@
 import random
 import strformat
 
-import csfml
-import csfml/audio
+import raylib
 
 import anim
 import game
@@ -15,253 +14,157 @@ const
   defaultScale = 2
   ticksPerSecond = 60
 
-type
-  KeyCallbacks = array[KeyCode, proc()]
-  KeysHeld = array[KeyCode, bool]
-  RenderParams = object
-    window: RenderWindow
-    game: ptr Game
-    animations: seq[ptr Animation]
+when isMainModule:
+  randomize()
 
-proc processEvents(window: RenderWindow; keyCallbacks: KeyCallbacks; keysHeld: var KeysHeld) =
-  var e: Event
-  while window.pollEvent(e): # add --passC:-fno-stack-protector with -d:release otherwise this crashes
-    case e.kind
-    of EventType.Closed: window.close()
-    of EventType.KeyPressed:
-      let keycode = e.key.code
-      if not keysHeld[keycode] and keyCallbacks[keycode] != nil:
-        keyCallbacks[keycode]()
-      keysHeld[keycode] = true
-    of EventType.KeyReleased:
-      let keycode = e.key.code
-      keysHeld[keycode] = false
-    else: discard
+  setConfigFlags(flags(WindowResizable, VsyncHint))
+  initWIndow(viewWidth * defaultScale, viewHeight * defaultScale, "Baitman")
+  let target = loadRenderTexture(viewWidth, viewHeight)
 
-proc renderThread(params: ptr RenderParams) {.thread.} =
-  # TODO move this mess
+  initAudioDevice()
+
   let
-    texGirl = newTexture("res/girl.png")
-    texBaitman = newTexture("res/baitman.png")
-    texWall = newTexture("res/wall.png")
-    texFish = newTexture("res/fish.png")
-    texHook = newTexture("res/hook.png")
-    texPelletBag = newTexture("res/pelletBag.png")
+    #texGirl = loadTexture("res/girl.png")
+    texBaitman = loadTexture("res/mika.png")
+    texWall = loadTexture("res/wall.png")
+    texFish = loadTexture("res/fish.png")
+    texHook = loadTexture("res/hook.png")
+    texPelletBag = loadTexture("res/pelletBag.png")
 
-  var pelletCircle = newCircleShape(3)
-  pelletCircle.origin = vec2(3, 3)
-  pelletCircle.fillColor = color(0xff, 0xee, 0)
-
-  var bigPelletCircle = newCircleShape(6)
-  bigPelletCircle.origin = vec2(6, 6)
-  bigPelletCircle.fillColor = color(0xff, 0xee, 0x66)
-
-  var abilitySquare = newRectangleShape(vec2(24, 24))
-  abilitySquare.position = vec2(88, 452)
-  abilitySquare.outlineThickness = 2
-  abilitySquare.outlineColor = White
-  abilitySquare.fillColor = Black
+  var animations: seq[ptr Animation]
 
   var animGirlDown = Animation(
-    sprite: newSprite(texGirl),
     size: (32, 32),
     offsets: @[(0, 0), (32, 0), (0, 0), (64, 0)],
     speed: 4,
     repeat: true,
   )
-  animGirlDown.sprite.origin = vec2(16, 16)
-  params.animations.add(animGirlDown.addr)
+  animations.add(animGirlDown.addr)
 
   var animBaitman = Animation(
-    sprite: newSprite(texBaitman),
     size: (32, 32),
     offsets: @[(0, 0), (32, 0)],
     speed: 6,
     repeat: true,
   )
-  animBaitman.sprite.origin = vec2(16, 16)
-  params.animations.add(animBaitman.addr)
+  animations.add(animBaitman.addr)
 
   var animFish = Animation(
-    sprite: newSprite(texFish),
     size: (32, 32),
     offsets: @[(0, 0)],
     speed: 0,
     repeat: true,
   )
-  animFish.sprite.origin = vec2(16, 16)
-  params.animations.add(animFish.addr)
+  animations.add(animFish.addr)
 
-  var sprWall = newSprite(texWall)
+  var font = loadFont("res/font.ttf")
 
-  var sprHook = newSprite(texHook)
-  sprHook.origin = vec2(16, 16)
+  var music = loadMusicStream("res/huhh.wav")
+  playMusicStream(music)
 
-  var sprPelletBag = newSprite(texPelletBag)
-  sprPelletBag.origin = vec2(16, 16)
+  var gameState: Game
+  gameState.init()
 
-  # double size and scaled down cause of antialiasing
-  var
-    font = newFont("res/font.ttf")
-    scoreText = newText("000000", font, 48)
-    timeText = newText("000", font, 48)
-  scoreText.fillColor = White
-  scoreText.position = vec2(496, 450)
-  scoreText.scale = vec2(0.5, 0.5)
-  timeText.fillColor = White
-  timeText.position = vec2(2, 450)
-  timeText.scale = vec2(0.5, 0.5)
+  #var view = newView(rect(0, 0, viewWidth, viewHeight));
+  #window.view = view
 
-  discard (params.window.active = true)
-  while params.window.open:
-    params.window.clear(Black)
+  proc draw() =
+    beginTextureMode(target)
+    beginDrawing()
 
-    for y, row in params.game.baitStage.level.tiles:
+    clearBackground(Black)
+
+    for y, row in gameState.baitStage.level.tiles:
       for x, tile in row:
         if tile == tkWall:
-          sprWall.position = vec2(x * 16, y * 16)
-          params.window.draw(sprWall)
+          drawTexture(texWall, Vector2(x: x.float * 16, y: y.float * 16), White)
 
-    for y, row in params.game.baitStage.level.moveGrid:
+    for y, row in gameState.baitStage.level.moveGrid:
       for x, node in row:
         case node.item:
         of ikPellet:
-          pelletCircle.position = vec2(x * 16, y * 16)
-          params.window.draw(pelletCircle)
+          drawCircle(Vector2(x: x.float * 16, y: y.float * 16), 3, Color(r: 0xff, g: 0xee, b: 0x00, a: 0xff))
         of ikBigPellet:
-          bigPelletCircle.position = vec2(x * 16, y * 16)
-          params.window.draw(bigPelletCircle)
+          drawCircle(Vector2(x: x.float * 16, y: y.float * 16), 6, Color(r: 0xff, g: 0xee, b: 0x66, a: 0xff))
         of ikNone: discard
     
-    for i in 0..params.game.baitStage.abilities.high:
-      # this is probably unsafe
-      if i > params.game.baitStage.abilities.high:
-        continue
-      let ability = params.game.baitStage.abilities[i]
+    for ability in gameState.baitStage.abilities:
       case ability.kind
       of akBigPellet:
-        sprPelletBag.position = vec2(
-          ability.entity.pos[0] * 16,
-          ability.entity.pos[1] * 16
-        )
-        params.window.draw(sprPelletBag)
+        drawTexture(texPelletBag, Vector2(x: ability.entity.pos[0] * 16 - 16, y: ability.entity.pos[1] * 16 - 16), White)
       of akNone: discard
     
-    for i in 0..params.game.baitStage.hooks.high:
-      # this too
-      if i > params.game.baitStage.hooks.high:
-        continue
-      let hook = params.game.baitStage.hooks[i]
-      sprHook.position = vec2(
-        hook.entity.pos[0] * 16,
-        hook.entity.pos[1] * 16
-      )
-      params.window.draw(sprHook)
+    for hook in gameState.baitStage.hooks:
+      drawTexture(texHook, Vector2(x: hook.entity.pos[0] * 16 - 16, y: hook.entity.pos[1] * 16 - 16), White)
     
-    for i in 0..params.game.baitStage.fish.high:
-      # this too
-      if i > params.game.baitStage.fish.high:
-        continue
-      let fish = params.game.baitStage.fish[i]
-      animFish.sprite.position = vec2(
-        fish.entity.pos[0] * 16,
-        fish.entity.pos[1] * 16
-      )
-      params.window.draw(animFish.sprite)
-       
-    animBaitman.sprite.position = vec2(
-      params.game.baitStage.baitman.entity.pos[0] * 16,
-      params.game.baitStage.baitman.entity.pos[1] * 16
-    )
-    params.window.draw(animBaitman.sprite)
+    for fish in gameState.baitStage.fish:
+      drawTexture(texFish, Vector2(x: fish.entity.pos[0] * 16 - 16, y: fish.entity.pos[1] * 16 - 16), White)
+        
+    let baitman = gameState.baitStage.baitman
+    drawTexture(texBaitman, Vector2(x: baitman.entity.pos[0] * 16 - 16, y: baitman.entity.pos[1] * 16 - 16), White)
 
-    timeText.str = fmt"{params.game.baitStage.time.int:03}"
-    params.window.draw(timeText)
-    scoreText.str = fmt"{params.game.baitStage.score:06}"
-    params.window.draw(scoreText)
+    drawText(font, fmt"{gameState.baitStage.score:06}", Vector2(x: 496, y: 454), 24, 0, White)
+    drawText(font, fmt"{gameState.baitStage.time.int:03}", Vector2(x: 2, y: 454), 24, 0, White)
 
-    params.window.draw(abilitySquare)
-    case params.game.baitStage.currentAbility
+    drawRectangleLines(88, 452, 24, 24, White)
+    case gameState.baitStage.currentAbility
     of akBigPellet:
-      bigPelletCircle.position = vec2(100, 464)
-      params.window.draw(bigPelletCircle)
+      drawCircle(100, 464, 6, Color(r: 0xff, g: 0xee, b: 0x66, a: 0xff))
     of akNone: discard 
 
-    params.window.display()
+    endDrawing()
+    endTextureMode()
 
-when isMainModule:
-  randomize()
+    beginDrawing()
 
-  var
-    gameState: Game
-    window: RenderWindow
-    thr: system.Thread[ptr RenderParams]
-  
-  gameState.init()
+    drawTexture(
+      target.texture,
+      Rectangle(x: 0, y: 0, width: viewWidth, height: -viewHeight),
+      Rectangle(x: 0, y: 0, width: getScreenWidth().float, height: getScreenHeight().float),
+      Vector2(x: 0, y: 0),
+      0,
+      White
+    )
 
-  window = newRenderWindow(videoMode(viewWidth * defaultScale, viewHeight * defaultScale), "Baitman", WindowStyle.Default, contextSettings())
-  window.verticalSyncEnabled = true
+    beginDrawing()
 
-  var music = newMusic("res/huhh.wav")
-  music.loop = true
-  music.play()
+  proc input() =
+    if isKeyPressed(Escape):
+      closeWindow()
+    if isKeyPressed(Space):
+      gameState.paused = not gameState.paused
+    if isKeyPressed(Z):
+      gameState.input(ikInteract)
 
-  var view = newView(rect(0, 0, viewWidth, viewHeight));
-  window.view = view
-  
-  var renderParams = RenderParams(
-    window: window,
-    game: gameState.addr,
-  )
-
-  discard (window.active = false)
-  createThread(thr, renderThread, renderParams.addr)
-
-  var keyCallbacks: KeyCallbacks
-  keyCallbacks[KeyCode.Escape] = proc() = 
-    window.close()
-  keyCallbacks[KeyCode.Space] = proc() =
-    gameState.paused = not gameState.paused
-  keyCallbacks[KeyCode.Z] = proc() =
-    gameState.input(ikInteract)
-
-  var heldCallbacks: KeyCallbacks
-  heldCallbacks[KeyCode.Up] = proc() =
-    gameState.input(ikMoveUp)
-  heldCallbacks[KeyCode.Down] = proc() =
-    gameState.input(ikMoveDown)
-  heldCallbacks[KeyCode.Left] = proc() =
-    gameState.input(ikMoveLeft)
-  heldCallbacks[KeyCode.Right] = proc() =
-    gameState.input(ikMoveRight)
-
-  var keysHeld: KeysHeld
+    if isKeyDown(Up):
+      gameState.input(ikMoveUp)
+    if isKeyDown(Down):
+      gameState.input(ikMoveDown)
+    if isKeyDown(Left):
+      gameState.input(ikMoveLeft)
+    if isKeyDown(Right):
+      gameState.input(ikMoveRight)
 
   var
-    clock = newClock()
-    lastTime: Time
+    lastTime: float64
     delta: float64
-  while window.open:
-    let time = clock.elapsedTime
-    delta += time.asSeconds - lastTime.asSeconds
+  while not windowShouldClose():
+    let time = getTime()
+    delta += time - lastTime
     lastTime = time
 
     if delta >= 1 / ticksPerSecond:
-      processEvents(window, keyCallbacks, keysHeld)
-      for keycode, held in keysHeld:
-        if heldCallbacks[keycode] != nil and held:
-          heldCallbacks[keycode]()
-      if not gameState.tick(1 / ticksPerSecond): window.close()
+      input()
+      if not gameState.tick(1 / ticksPerSecond): closeWindow()
 
-      if gameState.baitStage.time <= 0:
-        music.stop()
-      elif gameState.baitStage.time < 30:
-        music.pitch = 1.5
+      #if gameState.baitStage.time <= 0:
+      #  music.stop()
+      #elif gameState.baitStage.time < 30:
+      #  music.pitch = 1.5
 
       # unsafe if the thread somehow gets here between animations getting added to the seq?
-      for anim in renderParams.animations:
+      for anim in animations:
         discard anim[].next(1 / ticksPerSecond)
+      draw()
 
       delta = 0
-
-  joinThread(thr)

@@ -3,7 +3,13 @@
     nativeBuildInputs = with pkgs.buildPackages; [
       nimble
       nim
-      sfml
-      csfml
+      raylib
+      libGL
+      xorg.libX11
+      xorg.libX11.dev
+      xorg.libXcursor
+      xorg.libXi
+      xorg.libXinerama
+      xorg.libXrandr
     ];
   }

@@ -11,5 +11,4 @@ bin           = @["baitman"]
 # Dependencies
 
 requires "nim >= 2.2.0"
-
-requires "csfml >= 2.5.0"
+requires "naylib >= 25.29.0"
