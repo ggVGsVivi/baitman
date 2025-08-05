@@ -70,7 +70,6 @@ when isMainModule:
 
   proc draw() =
     beginTextureMode(target)
-    beginDrawing()
 
     clearBackground(Black)
 
@@ -112,7 +111,6 @@ when isMainModule:
       drawCircle(100, 464, 6, Color(r: 0xff, g: 0xee, b: 0x66, a: 0xff))
     of akNone: discard 
 
-    endDrawing()
     endTextureMode()
 
     beginDrawing()
@@ -126,7 +124,7 @@ when isMainModule:
       White
     )
 
-    beginDrawing()
+    endDrawing()
 
   proc input() =
     if isKeyPressed(Escape):

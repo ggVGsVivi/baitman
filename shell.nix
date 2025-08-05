@@ -3,7 +3,6 @@
     nativeBuildInputs = with pkgs.buildPackages; [
       nimble
       nim
-      raylib
       libGL
       xorg.libX11
       xorg.libX11.dev
