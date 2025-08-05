@@ -12,4 +12,4 @@ bin           = @["baitman"]
 
 requires "nim >= 2.2.0"
 
-requires "csfml >= 2.5.0"
+requires "sdl2 >= 2.0.5"

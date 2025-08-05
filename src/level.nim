@@ -17,11 +17,12 @@ type
     ikPellet
     ikBigPellet
   MoveNode* = object
-    level: ptr Level
+    level*: ptr Level
     pos*: Vec2i
     open*: bool
     item*: ItemKind
   Level* = object
+    rand*: Rand
     tiles*: array[levelHeight, array[levelWidth, TileKind]]
     moveGrid*: array[gridHeight, array[gridWidth, ptr MoveNode]]
     openMoveNodes: seq[ptr MoveNode]
@@ -69,6 +70,7 @@ proc generateMoveGrid(level: ptr Level) =
 
 proc createLevel*(levelStr: string): ptr Level =
   result = create(Level)
+  result.rand = initRand()
   var
     x = 0
     y = 0

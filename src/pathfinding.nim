@@ -21,9 +21,9 @@ proc node[T](n: T; prevI: int; totalDist: float): ptr Node[T] =
 
 proc calculatePath*[T, H](
   src: T;
-  destCheckProc: proc(n: T): bool;
-  connectProc: proc(n: T): seq[(T, float)];
-  hashProc: proc(n: T): H;
+  destCheckProc: proc(n: T): bool {.noSideEffect.};
+  connectProc: proc(n: T): seq[(T, float)] {.noSideEffect.};
+  hashProc: proc(n: T): H {.noSideEffect.};
   distanceCap: Option[float] = none[float]()
 ): seq[T] =
   ## Returns an optimal path of nodes (type T) between a source and a destination.

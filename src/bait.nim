@@ -87,20 +87,20 @@ proc tick(baitman: var Baitman; delta: float64) =
 
 proc path(fish: Fish): ptr MoveNode =
 
-  proc bigPelletCheck(node: ptr MoveNode): bool =
+  func bigPelletCheck(node: ptr MoveNode): bool =
     node.item == ikBigPellet
 
-  proc pelletCheck(node: ptr MoveNode): bool =
+  func pelletCheck(node: ptr MoveNode): bool =
     node.item == ikPellet
 
-  proc openNeighbours(node: ptr MoveNode): seq[(ptr MoveNode, float)] =
+  func openNeighbours(node: ptr MoveNode): seq[(ptr MoveNode, float)] =
     for dir in [[0, -1], [0, 1], [-1, 0], [1, 0]]:
       let nn = node.relativeNode(dir)
       if nn.open:
         result.add((nn, 1.0))
-      result.shuffle()
+      node.level.rand.shuffle(result)
   
-  proc hash(node: ptr MoveNode): Vec2i =
+  func hash(node: ptr MoveNode): Vec2i =
     node.pos
 
   let bigPelletPath = calculatePath(fish.entity.node, bigPelletCheck, openNeighbours, hash, some(6.0))
