@@ -271,6 +271,8 @@ when isMainModule:
   if renderer == nil:
     sdlErr "Renderer could not be created"
   context = window.glCreateContext()
+  if context == nil:
+    sdlErr "GL context could not be created"
 
   discard openAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048)
 
@@ -283,3 +285,9 @@ when isMainModule:
   logicThread(params.addr)
 
   joinThread(thr)
+
+  dealloc(game)
+
+  glDeleteContext(context)
+  destroyRenderer(renderer)
+  destroyWindow(window)
