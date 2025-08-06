@@ -1,5 +1,6 @@
 import math
 
+import space
 import walk
 import bait
 
@@ -20,15 +21,27 @@ type
     paused*: bool
 
 proc init*(game: var Game) =
-  game.currentStage = csBait
+  game.currentStage = csWalk
+  game.walkStage.init()
   game.baitStage.init()
   game.paused = true
 
 proc input*(game: var Game; kind: InputKind) =
-  if game.paused: return
+  if game.paused:
+    return
   case game.currentStage
   of csWalk:
-    discard # TODO after walkStage
+    case kind
+    of ikMoveUp:
+      game.walkStage.girl.entity.direction.y -= 1
+    of ikMoveDown:
+      game.walkStage.girl.entity.direction.y += 1
+    of ikMoveLeft:
+      game.walkStage.girl.entity.direction.x -= 1
+    of ikMoveRight:
+      game.walkStage.girl.entity.direction.x += 1
+    of ikInteract:
+      discard
   of csBait:
     case kind
     of ikMoveUp:
@@ -43,7 +56,8 @@ proc input*(game: var Game; kind: InputKind) =
       game.baitStage.useAbility()
 
 proc tick*(game: var Game; delta: float64): bool =
-  if game.paused: return true
+  if game.paused:
+    return true
   case game.currentStage
   of csWalk:
     game.walkStage.tick(delta)

@@ -24,13 +24,13 @@ func `$`*[N, T](v: Vec[N, T]): string =
 converter toVec2f*(v: Vec2i): Vec2f = [v[0].float64, v[1].float64]
 converter toVec2i*(v: Vec2f): Vec2i = [v[0].int, v[1].int]
 
-func x*[N, T](v: Vec[N, T]): T = v[0]
+template x*[N, T](v: Vec[N, T]): T = v[0]
 
-func y*[N, T](v: Vec[N, T]): T = v[1]
+template y*[N, T](v: Vec[N, T]): T = v[1]
 
-func z*[N, T](v: Vec[N, T]): T = v[2]
+template z*[N, T](v: Vec[N, T]): T = v[2]
 
-func w*[N, T](v: Vec[N, T]): T = v[3]
+template w*[N, T](v: Vec[N, T]): T = v[3]
 
 func `+`*[N, T](v1, v2: Vec[N, T]): Vec[N, T] =
   for i in 0..N.high:

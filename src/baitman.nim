@@ -30,7 +30,7 @@ when isMainModule:
     window: WindowPtr
     renderer: RendererPtr
     context: GlContextPtr
-    game = create(Game)
+    game: ptr Game
 
   proc logicThread(params: ptr Params) {.thread.} =
 
@@ -103,21 +103,21 @@ when isMainModule:
 
         delta = 0
 
-
   proc renderThread(params: ptr Params) {.thread.} =
 
-    template rect(x, y, w, h: untyped): untyped =
+    template rect(x, y, w, h: typed): Rect =
       sdl2.rect(x.cint, y.cint, w.cint, h.cint)
 
     let
       black = color(0x00, 0x00, 0x00, 0xff)
       white = color(0xff, 0xff, 0xff, 0xff)
+      lightBlue = color(0x00, 0x99, 0xff, 0xff)
 
     let
       texGirl = loadTexture(renderer, "res/girl.png")
       texBaitman = loadTexture(renderer, "res/baitman.png")
       texWall = loadTexture(renderer, "res/wall.png")
-      texFish = loadTexture(renderer, "res/fish.png")
+      texFish = loadTexture(renderer, "res/mika.png")
       texHook = loadTexture(renderer, "res/hook.png")
       texPelletBag = loadTexture(renderer, "res/pelletBag.png")
 
@@ -157,86 +157,109 @@ when isMainModule:
     while running:
       renderer.setRenderTarget(target)
 
-      renderer.setDrawColor(black)
-      renderer.clear()
+      case game.currentStage
+      of csWalk:
+        renderer.setDrawColor(lightBlue)
+        renderer.clear()
 
-      for y, row in game.baitStage.level.tiles:
-        for x, tile in row:
-          if tile == tkWall:
-            dest = rect(x * 16, y * 16, 16, 16)
-            renderer.copy(texWall, nil, dest.addr)
+        let
+          girl = game.walkStage.girl
+          frame = animGirlDown.getFrame()
+        src = rect(frame[0], frame[1], frame[2], frame[3])
+        dest = rect(girl.entity.pos[0] * 16 - 16, girl.entity.pos[1] * 16 - 16, 32, 32)
+        renderer.copy(texGirl, src.addr, dest.addr)
 
-      for y, row in game.baitStage.level.moveGrid:
-        for x, node in row:
-          case node.item:
-          of ikPellet:
-            renderer.filledCircleColor(x.int16 * 16, y.int16 * 16, 3, 0xff00eeff.uint32)
-          of ikBigPellet:
-            renderer.filledCircleColor(x.int16 * 16, y.int16 * 16, 6, 0xff66eeff.uint32)
-          of ikNone: discard
-      
-      for i in 0..game.baitStage.abilities.high:
-        # this is probably unsafe
-        if i > game.baitStage.abilities.high:
-          continue
-        let ability = game.baitStage.abilities[i]
-        case ability.kind
+      of csBait:
+        renderer.setDrawColor(black)
+        renderer.clear()
+
+        for y, row in game.baitStage.level.tiles:
+          for x, tile in row:
+            if tile == tkWall:
+              dest = rect(x * 16, y * 16, 16, 16)
+              renderer.copy(texWall, nil, dest.addr)
+
+        for y, row in game.baitStage.level.moveGrid:
+          for x, node in row:
+            case node.item:
+            of ikPellet:
+              renderer.filledCircleColor(x.int16 * 16, y.int16 * 16, 3, 0xff00eeff.uint32)
+            of ikBigPellet:
+              renderer.filledCircleColor(x.int16 * 16, y.int16 * 16, 6, 0xff66eeff.uint32)
+            of ikNone: discard
+        
+        for i in 0..game.baitStage.abilities.high:
+          # this is probably unsafe
+          if i > game.baitStage.abilities.high:
+            continue
+          let ability = game.baitStage.abilities[i]
+          case ability.kind
+          of akBigPellet:
+            dest = rect(ability.entity.pos[0] * 16 - 16, ability.entity.pos[1] * 16 - 16, 32, 32)
+            renderer.copy(texPelletBag, nil, dest.addr)
+          of akNone: discard
+        
+        for i in 0..game.baitStage.hooks.high:
+          # this too
+          if i > game.baitStage.hooks.high:
+            continue
+          let hook = game.baitStage.hooks[i]
+          dest = rect(hook.entity.pos[0] * 16 - 16, hook.entity.pos[1] * 16 - 16, 32, 32)
+          renderer.copy(texHook, nil, dest.addr)
+        
+        for i in 0..game.baitStage.fish.high:
+          # this too
+          if i > game.baitStage.fish.high:
+            continue
+          let fish = game.baitStage.fish[i]
+          dest = rect(fish.entity.pos[0] * 16 - 16, fish.entity.pos[1] * 16 - 16, 32, 32)
+          renderer.copy(texFish, nil, dest.addr)
+
+        let
+          baitman = game.baitStage.baitman
+          frame = animBaitman.getFrame()
+        src = rect(frame[0], frame[1], frame[2], frame[3])
+        dest = rect(baitman.entity.pos[0] * 16 - 16, baitman.entity.pos[1] * 16 - 16, 32, 32)
+        renderer.copy(texBaitman, src.addr, dest.addr)
+        
+        let
+          surTimeText = font.renderTextSolid(fmt"{game.baitStage.time.int:03}".cstring, white)
+          texTimeText = renderer.createTextureFromSurface(surTimeText)
+        dest = rect(2, 454, surTimeText.w, surTimeText.h)
+        renderer.copy(texTimeText, nil, dest.addr)
+        freeSurface(surTimeText)
+        destroyTexture(texTimeText)
+
+        let
+          surScoreText = font.renderTextSolid(fmt"{game.baitStage.score:06}".cstring, white)
+          texScoreText = renderer.createTextureFromSurface(surScoreText)
+        dest = rect(496, 454, surScoreText.w, surScoreText.h)
+        renderer.copy(texScoreText, nil, dest.addr)
+        freeSurface(surScoreText)
+        destroyTexture(texScoreText)
+
+        let abilitySquare = rect(88, 452, 24, 24)
+        renderer.setDrawColor(white)
+        renderer.drawRect(abilitySquare.addr)
+        case game.baitStage.currentAbility
         of akBigPellet:
-          dest = rect(ability.entity.pos[0] * 16 - 16, ability.entity.pos[1] * 16 - 16, 32, 32)
-          renderer.copy(texPelletBag, nil, dest.addr)
-        of akNone: discard
-      
-      for i in 0..game.baitStage.hooks.high:
-        # this too
-        if i > game.baitStage.hooks.high:
-          continue
-        let hook = game.baitStage.hooks[i]
-        dest = rect(hook.entity.pos[0] * 16 - 16, hook.entity.pos[1] * 16 - 16, 32, 32)
-        renderer.copy(texHook, nil, dest.addr)
-      
-      for i in 0..game.baitStage.fish.high:
-        # this too
-        if i > game.baitStage.fish.high:
-          continue
-        let fish = game.baitStage.fish[i]
-        dest = rect(fish.entity.pos[0] * 16 - 16, fish.entity.pos[1] * 16 - 16, 32, 32)
-        renderer.copy(texFish, nil, dest.addr)
-
-      let
-        baitman = game.baitStage.baitman
-        frame = animBaitman.getFrame()
-      src = rect(frame[0], frame[1], frame[2], frame[3])
-      dest = rect(baitman.entity.pos[0] * 16 - 16, baitman.entity.pos[1] * 16 - 16, 32, 32)
-      renderer.copy(texBaitman, src.addr, dest.addr)
-      
-      let
-        surTimeText = font.renderTextSolid(fmt"{game.baitStage.time.int:03}".cstring, white)
-        texTimeText = renderer.createTextureFromSurface(surTimeText)
-      dest = rect(2, 454, surTimeText.w, surTimeText.h)
-      renderer.copy(texTimeText, nil, dest.addr)
-      freeSurface(surTimeText)
-      destroyTexture(texTimeText)
-
-      let
-        surScoreText = font.renderTextSolid(fmt"{game.baitStage.score:06}".cstring, white)
-        texScoreText = renderer.createTextureFromSurface(surScoreText)
-      dest = rect(496, 454, surScoreText.w, surScoreText.h)
-      renderer.copy(texScoreText, nil, dest.addr)
-      freeSurface(surScoreText)
-      destroyTexture(texScoreText)
-
-      let abilitySquare = rect(88, 452, 24, 24)
-      renderer.setDrawColor(white)
-      renderer.drawRect(abilitySquare.addr)
-      case game.baitStage.currentAbility
-      of akBigPellet:
-        renderer.filledCircleColor(100, 464, 6, 0xff66eeff.uint32)
-      of akNone: discard 
+          renderer.filledCircleColor(100, 464, 6, 0xff66eeff.uint32)
+        of akNone: discard 
 
       renderer.setRenderTarget(nil)
+      
       src = rect(0, 0, viewWidth, viewHeight)
-      dest = rect(0, 0, 0, 0)
-      window.getSize(dest.w, dest.h)
+      var
+        windowWidth: cint
+        windowHeight: cint
+      window.getSize(windowWidth, windowHeight)
+      let targetScale = min(windowWidth.float / viewWidth, windowHeight.float / viewHeight)
+      dest = rect(
+        (windowWidth.float - viewWidth * targetScale) * 0.5,
+        (windowHeight.float - viewHeight * targetScale) * 0.5,
+        viewWidth * targetScale,
+        viewHeight * targetScale
+      )
       renderer.copy(target, src.addr, dest.addr)
 
       renderer.present()
@@ -247,9 +270,10 @@ when isMainModule:
   randomize()
 
   var
-    params: Params
+    params = create(Params)
     thr: system.Thread[ptr Params]
-  
+
+  game = create(Game)
   game[].init()
 
   if not sdl2.init(INIT_EVERYTHING):
@@ -280,14 +304,15 @@ when isMainModule:
   discard music.playMusic(-1)
 
   discard window.glMakeCurrent(nil)
-  createThread(thr, renderThread, params.addr)
+  createThread(thr, renderThread, params)
 
-  logicThread(params.addr)
+  logicThread(params)
 
   joinThread(thr)
-
-  dealloc(game)
 
   glDeleteContext(context)
   destroyRenderer(renderer)
   destroyWindow(window)
+
+  dealloc(params)
+  dealloc(game)

@@ -34,7 +34,7 @@ type
     time*: float64
     score*: int
 
-func direction(entity: Entity): Vec2i =
+func direction*(entity: Entity): Vec2i =
   if entity.nextNode == nil:
     return [0, 0]
   result = entity.nextNode.pos - entity.node.pos
