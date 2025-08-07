@@ -1,31 +1,9 @@
 import random
 
-import space
+import ../space
 
-const
-  levelWidth = 40
-  levelHeight = 28
-  gridWidth = levelWidth + 1
-  gridHeight = levelHeight + 1
-
-type
-  TileKind* = enum
-    tkWall
-    tkGround
-  ItemKind* = enum
-    ikNone
-    ikPellet
-    ikBigPellet
-  MoveNode* = object
-    level*: ptr Level
-    pos*: Vec2i
-    open*: bool
-    item*: ItemKind
-  Level* = object
-    rand*: Rand
-    tiles*: array[levelHeight, array[levelWidth, TileKind]]
-    moveGrid*: array[gridHeight, array[gridWidth, ptr MoveNode]]
-    openMoveNodes: seq[ptr MoveNode]
+import types
+export types
 
 proc relativeNode*(node: ptr MoveNode; direction: Vec2i): ptr MoveNode =
   var

@@ -1,8 +1,6 @@
-import math
-
 import space
-import walk
-import bait
+import walkstage/walk
+import baitstage/bait
 
 type
   InputKind* = enum

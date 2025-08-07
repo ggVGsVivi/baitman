@@ -9,9 +9,8 @@ import sdl2/ttf
 import sdl2/mixer
 
 import anim
-import gamestate
-import bait
-import level
+import game/gamestate
+import game/baitstage/bait
 
 const
   viewWidth = 640
@@ -105,8 +104,17 @@ when isMainModule:
 
   proc renderThread(params: ptr Params) {.thread.} =
 
-    template rect(x, y, w, h: typed): Rect =
+    proc rect(x, y, w, h: SomeNumber): Rect =
       sdl2.rect(x.cint, y.cint, w.cint, h.cint)
+
+    proc renderText(font: FontPtr; text: string; x, y: SomeNumber; colour: Color) =
+      let
+        surText = font.renderTextSolid(text.cstring, colour)
+        texText = renderer.createTextureFromSurface(surText)
+        dest = rect(x, y, surText.w, surText.h)
+      renderer.copy(texText, nil, dest.addr)
+      freeSurface(surText)
+      destroyTexture(texText)
 
     let
       black = color(0x00, 0x00, 0x00, 0xff)
@@ -221,22 +229,9 @@ when isMainModule:
         src = rect(frame[0], frame[1], frame[2], frame[3])
         dest = rect(baitman.entity.pos[0] * 16 - 16, baitman.entity.pos[1] * 16 - 16, 32, 32)
         renderer.copy(texBaitman, src.addr, dest.addr)
-        
-        let
-          surTimeText = font.renderTextSolid(fmt"{game.baitStage.time.int:03}".cstring, white)
-          texTimeText = renderer.createTextureFromSurface(surTimeText)
-        dest = rect(2, 454, surTimeText.w, surTimeText.h)
-        renderer.copy(texTimeText, nil, dest.addr)
-        freeSurface(surTimeText)
-        destroyTexture(texTimeText)
 
-        let
-          surScoreText = font.renderTextSolid(fmt"{game.baitStage.score:06}".cstring, white)
-          texScoreText = renderer.createTextureFromSurface(surScoreText)
-        dest = rect(496, 454, surScoreText.w, surScoreText.h)
-        renderer.copy(texScoreText, nil, dest.addr)
-        freeSurface(surScoreText)
-        destroyTexture(texScoreText)
+        renderText(font, fmt"{game.baitStage.time.int:03}", 2, 454, white)
+        renderText(font, fmt"{game.baitStage.score:06}", 496, 454, white)
 
         let abilitySquare = rect(88, 452, 24, 24)
         renderer.setDrawColor(white)

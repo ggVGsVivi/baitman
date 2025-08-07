@@ -1,14 +1,7 @@
-import space
+import ../space
 
-type
-  Entity* = object
-    pos*: Vec2f
-    direction*: Vec2f
-    speed*: float64
-  Girl* = object
-    entity*: Entity
-  WalkStage* = object
-    girl*: Girl
+import types
+export types
 
 proc move(entity: var Entity; delta: float64) =
   entity.pos = entity.pos + entity.direction.normalised * entity.speed * delta

@@ -1,38 +1,11 @@
 import random
 
-import space
+import ../space
+import ../pathfinding
 import level
-import pathfinding
 
-type
-  AbilityKind* = enum
-    akNone
-    akBigPellet
-  Entity = object
-    node: ptr MoveNode
-    nextNode: ptr MoveNode
-    speed: float64
-    progress: float64
-  Baitman* = object
-    entity*: Entity
-    inputDirection*: Vec2i
-    nextItem: ItemKind
-  Fish* = object
-    entity*: Entity
-  Hook* = object
-    entity*: Entity
-  Ability* = object
-    entity*: Entity
-    kind*: AbilityKind
-  BaitStage* = object
-    level*: ptr Level
-    baitman*: Baitman
-    fish*: seq[Fish]
-    hooks*: seq[Hook]
-    abilities*: seq[Ability]
-    currentAbility*: AbilityKind
-    time*: float64
-    score*: int
+import types
+export types
 
 func direction*(entity: Entity): Vec2i =
   if entity.nextNode == nil:
