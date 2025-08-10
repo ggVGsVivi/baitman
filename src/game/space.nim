@@ -59,9 +59,19 @@ func mag2*[N, T](v: Vec[N, T]): float64 =
 func mag*[N, T](v: Vec[N, T]): float64 =
   sqrt(v.mag2)
 
-func normalised*[N](v: Vec[N, float64]): Vec[N, float64] =
+func norm*[N](v: Vec[N, float64]): Vec[N, float64] =
   let len = v.mag
   if len > 0:
     v / len
   else:
     v
+
+func dot*[N, T](v1, v2: Vec[N, T]): float64 =
+  for i in 0..N.high:
+    result += v1[i] * v2[i]
+
+func cos*[N, T](v1, v2: Vec[N, T]): float64 =
+  dot(v1, v2) / (v1.mag * v2.mag)
+
+func sin*[N, T](v1, v2: Vec[N, T]): float64 =
+  sqrt(1 - pow(cos(v1, v2), 2))

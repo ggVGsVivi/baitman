@@ -10,7 +10,7 @@ type Node[T] = object
   prevI: int
   totalDist: float
 
-func `<`*(a, b: Node): bool =
+func `<`(a, b: Node): bool =
   a.totalDist < b.totalDist
 
 proc node[T](n: T; prevI: int; totalDist: float): ptr Node[T] =

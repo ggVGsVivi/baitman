@@ -1,5 +1,11 @@
 import ../space
 
+# level
+type
+  Wall* = array[2, Vec2f]
+  Level* = object
+    walls*: seq[Wall]
+
 # walk
 type
   Entity* = object
@@ -9,6 +15,7 @@ type
   Girl* = object
     entity*: Entity
   WalkStage* = object
+    level*: ptr Level
     girl*: Girl
 
 # i want cyclic imports reee

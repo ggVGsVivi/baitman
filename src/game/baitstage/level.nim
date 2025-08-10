@@ -1,3 +1,4 @@
+import math
 import random
 
 import ../space
@@ -6,18 +7,8 @@ import types
 export types
 
 proc relativeNode*(node: ptr MoveNode; direction: Vec2i): ptr MoveNode =
-  var
-    xx = node.pos.x + direction.x
-    yy = node.pos.y + direction.y
-  if xx < 0:
-    xx = gridWidth - 1
-  if xx >= gridWidth:
-    xx = 0
-  if yy < 0:
-    yy = gridHeight - 1
-  if yy >= gridHeight:
-    yy = 0
-  node.level.moveGrid[yy][xx]
+  let pos = node.pos + direction
+  node.level.moveGrid[pos.y.floorMod(gridHeight)][pos.x.floorMod(gridWidth)]
 
 proc randomOpenNode*(level: ptr Level): ptr MoveNode =
   sample(level.openMoveNodes)

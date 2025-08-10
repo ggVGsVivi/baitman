@@ -1,3 +1,4 @@
+import math
 import tables
 import random
 import strformat
@@ -91,8 +92,8 @@ when isMainModule:
         input()
         if not game[].tick(1 / ticksPerSecond): running = false
 
-        if game.baitStage.time <= 0:
-          discard haltMusic()
+        #if game.baitStage.time <= 0:
+        #  discard haltMusic()
         #elif gameState.baitStage.time < 30:
         #  music.pitch = 1.5
 
@@ -100,7 +101,7 @@ when isMainModule:
         for anim in params.animations:
           discard anim[].next(1 / ticksPerSecond)
 
-        delta = 0
+        delta = delta mod (1 / ticksPerSecond)
 
   proc renderThread(params: ptr Params) {.thread.} =
 
@@ -176,6 +177,15 @@ when isMainModule:
         src = rect(frame[0], frame[1], frame[2], frame[3])
         dest = rect(girl.entity.pos[0] * 16 - 16, girl.entity.pos[1] * 16 - 16, 32, 32)
         renderer.copy(texGirl, src.addr, dest.addr)
+
+        renderer.setDrawColor(black)
+        for wall in game.walkStage.level.walls:
+          renderer.drawLine(
+            (wall[0][0] * 16).cint,
+            (wall[0][1] * 16).cint,
+            (wall[1][0] * 16).cint,
+            (wall[1][1] * 16).cint
+          )
 
       of csBait:
         renderer.setDrawColor(black)
@@ -295,8 +305,8 @@ when isMainModule:
 
   discard openAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048)
 
-  var music = loadMUS("res/huhh.wav")
-  discard music.playMusic(-1)
+  #var music = loadMUS("res/huhh.wav")
+  #discard music.playMusic(-1)
 
   discard window.glMakeCurrent(nil)
   createThread(thr, renderThread, params)

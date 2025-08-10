@@ -13,7 +13,7 @@ func direction*(entity: Entity): Vec2i =
   result = entity.nextNode.pos - entity.node.pos
   # maybe there's a better way to do this
   if result.sum.abs > 1:
-    result = ([0, 0] - result).normalised
+    result = ([0, 0] - result).norm
 
 func pos*(entity: Entity): Vec2f =
   if entity.node == nil:
